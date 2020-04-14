@@ -25,8 +25,8 @@ def create_user(username):
     return {"status" : True, "statusText" : "account created"}
 
 
-def create_class(class_name):
-    print("class " + class_name + " created")
+def create_class():
+    print("class names are added")
     return "success"
 
 
@@ -70,8 +70,8 @@ def get_all_subjects():
 
 def get_classes(final_classes_json):
     # fetch classes by username
-    print(final_classes_json)
-    return "success"
+    classNames = json.loads(final_classes_json)['class_names']
+    return jsonify(classNames)
     # return [
     #     "Class 1",
     #     "Class 2",
@@ -120,7 +120,6 @@ def register():
         if existing_user is None:
             _hashed_password = generate_password_hash(password)
             id = mongo.db.teacher.insert({'username': username, 'password': _hashed_password, 'email': email, 'pupils': pupils})
-            print("User " + username + " created")
             result = create_user(username)
             return jsonify(result)
             # message = {"status" : True, "statusText" : "account created"}
@@ -161,7 +160,7 @@ def updateClass(id):
                 {'class_names': class_names}
             }
         )
-        result = create_class(class_names)
+        result = create_class()
         return result
     else:
         print("Not Found")
@@ -169,11 +168,21 @@ def updateClass(id):
 
 
 
-# @app.route('/api/createClass', methods=['POST'])
-# def createClass():
-#     class_name = request.json['class_name']
-#     result = create_class(class_name)
-#     return result
+@app.route('/api/createClass', methods=['POST'])
+def createClass():
+    username = request.json['username']
+    class_names = request.json['class_names']
+
+    if class_names and username and request.method == 'POST':
+        mongo.db.teacher.find_one_and_update({'username': username}, {'$set': { 'class_names': class_names}})
+        result = create_class()
+        return result
+
+    else:
+        print("Not Found")
+        return not_found()
+
+    
 
 
 @app.route('/api/getClasses', methods=['POST'])
@@ -184,15 +193,14 @@ def getClasses():
 
     all_class_details_data = json.loads(all_class_details)
     final_classes_json = json.dumps(all_class_details_data[0])
-    return get_classes(final_classes_json)
-    # return jsonify(get_classes(username))   
+    return get_classes(final_classes_json)   
 
 
 @app.route('/api/getPupils', methods=['GET'])
 def getPupils():
     username = request.args['username']
-    class_name = request.args['class_name']
-    return jsonify(get_pupils(username, class_name))
+    class_names = request.args['class_names']
+    return jsonify(get_pupils(username, class_names))
 
 
 @app.route('/api/addPupil', methods=['POST'])
